@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const Category = require ('../models/categoryModel')
+const Category = require ('../models/categoryModel');
+const { Protect,restrictTo } = require('../middleware/authMiddleware');
+
 
 // Create a new category
-router.post('/categories', async (req, res) => {
+router.post('/categories',Protect, restrictTo(['admin']), async (req, res) => {
     const { name,thumbnail } = req.body;
     try {
         const category = new Category({ name,thumbnail });

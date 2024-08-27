@@ -1,21 +1,29 @@
 
 require('dotenv').config()
+const  cookieParser = require('cookie-parser')
 const express = require('express')
 const mongoose = require('mongoose');
 const cors = require('cors')
 const app = express()
-
-const path = require ('path')
-
 const categoryRoutes = require ('./routes/categoryRoutes')
 const productRoutes = require ('./routes/productRoutes')
+const userRoutes = require('./routes/userRoutes');
+const authRouter = require ('./routes/authRouter')
+
 
 const port = 3000
-app.use(cors())
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}))
+app.use(cookieParser())
 app.use (express.json());
 
 app.use('/api/v1/', categoryRoutes);
 app.use('/api/v1/', productRoutes);
+app.use('/api/v1/', userRoutes);
+app.use('/api/v1/auth' , authRouter)
+
 
 
 

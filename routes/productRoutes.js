@@ -2,20 +2,58 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/productModel');
 const Category = require('../models/categoryModel');
+const upload = require('../middleware/multerMiddleware');
+const {uploadImageOnCloudinary} = require ('../utilis/cloudinary');
+const { Protect,restrictTo } = require('../middleware/authMiddleware');
+
+
+
 
 // Create a new product
-router.post('/products', async (req, res) => {
-    const { name, price,image,description, categoryId } = req.body;
+router.post('/products',Protect, restrictTo(['admin']), upload.single("picture"), async (req, res) => {
+    const { name, price, description, categoryId } = req.body;
+    const picturePath = req.file?.path;
+
+    // console.log("Request Body:", req.body); // Log the body data
+    // console.log("File Info:", req.file); // Log the file data
+
     try {
+        // Validate that the category exists
         const category = await Category.findById(categoryId);
         if (!category) {
             return res.status(404).json({ message: 'Category not found' });
         }
-        const product = new Product({ name, price, image, description, category: categoryId });
+
+        // Upload image to Cloudinary
+        const { secure_url, public_id } = await uploadImageOnCloudinary(picturePath, "products");
+        if (!secure_url) {
+            return res.status(400).send({
+                success: false,
+                message: "Error while uploading image",
+            });
+        }
+
+        // Create and save the product
+        const product = new Product({
+            name,
+            price,
+            description,
+            category: categoryId,
+            picture: { secure_url, public_id },
+        });
+
         await product.save();
-        res.status(201).json(product);
+        console.log("New Product:", product); // Log the product data
+
+        // Respond with success
+        return res.status(201).json({
+            success: true,
+            message: "Product uploaded successfully",
+            product,
+        });
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        console.error("Error while adding product:", error); // Log the error
+        return res.status(400).send({ message: error.message });
     }
 });
 
@@ -42,4 +80,4 @@ router.get('/products/:productId', async (req, res) => {
 });
 
 
-module.exports = router;
+module.exports = router; 
