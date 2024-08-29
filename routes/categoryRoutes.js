@@ -5,7 +5,7 @@ const { Protect,restrictTo } = require('../middleware/authMiddleware');
 
 
 // Create a new category
-router.post('/categories',Protect, restrictTo(['admin']), async (req, res) => {
+router.post('/categories', async (req, res) => {
     const { name,thumbnail } = req.body;
     try {
         const category = new Category({ name,thumbnail });

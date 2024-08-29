@@ -3,19 +3,21 @@ const router = express.Router();
 const Product = require('../models/productModel');
 const Category = require('../models/categoryModel');
 const upload = require('../middleware/multerMiddleware');
-const {uploadImageOnCloudinary} = require ('../utilis/cloudinary');
-const { Protect,restrictTo } = require('../middleware/authMiddleware');
+const { uploadImageOnCloudinary } = require('../utilis/cloudinary');
+const { Protect, restrictTo } = require('../middleware/authMiddleware');
+const cloudinary = require('cloudinary').v2;
 
-
-
+// Configure Cloudinary correctly
+cloudinary.config({ 
+    cloud_name: 'ducjbqvdd', 
+    api_key: '118528729625737', 
+    api_secret: 'C75AuiJl8vWsLT9x1xz9Qd7Nknk' 
+});
 
 // Create a new product
-router.post('/products',Protect, restrictTo(['admin']), upload.single("picture"), async (req, res) => {
+router.post('/products', Protect, restrictTo(['admin']), upload.single("picture"), async (req, res) => {
     const { name, price, description, categoryId } = req.body;
     const picturePath = req.file?.path;
-
-    // console.log("Request Body:", req.body); // Log the body data
-    // console.log("File Info:", req.file); // Log the file data
 
     try {
         // Validate that the category exists
@@ -67,6 +69,8 @@ router.get('/products/category/:categoryId', async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
+
+// Get a single product by ID
 router.get('/products/:productId', async (req, res) => {
     try {
         const product = await Product.findById(req.params.productId).populate('category');
@@ -79,5 +83,47 @@ router.get('/products/:productId', async (req, res) => {
     }
 });
 
+// List all Products
+router.get('/products', async (req, res) => {
+    try {
+        const products = await Product.find();
+        res.json(products);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
 
-module.exports = router; 
+// Delete a product by ID
+router.delete('/products/:productId', Protect, restrictTo(['admin']), async (req, res) => {
+    try {
+        const product = await Product.findById(req.params.productId);
+        
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        // Delete the image from Cloudinary
+        const { public_id } = product.picture;
+        if (public_id) {
+            await cloudinary.uploader.destroy(public_id);
+        }
+
+        // Delete the product from the database
+        await product.remove();
+
+        // Respond with success
+        res.status(200).json({ 
+            success: true, 
+            message: 'Product deleted successfully' 
+        });
+    } catch (error) {
+        console.error('Error while deleting product:', error); // Log the error
+        res.status(500).json({ 
+            success: false, 
+            message: 'Server error', 
+            error: error.message 
+        });
+    }
+});
+
+module.exports = router;

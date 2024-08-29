@@ -23,17 +23,17 @@ try {
     }
     const passwordMatch = bcrypt.compareSync(password,user.password); 
     if(passwordMatch){
-        const token = jwt.sign( {_id: user._id, name: user.name, email: user.email,role: user.role},process.env.JWT_PRIVATE_KEY);
+        const token = jwt.sign( {_id: user._id, name: user.name, email: user.email,role: user.role},process.env.JWT_PRIVATE_KEY,{expiresIn:'1h'});
         
         res.cookie('token', token,{httpOnly: true, secure: false})
-        res.status(200).send("Login successful")
+        res.status(200).json({message:"Login successful"})
     }
     else{
-        res.status(401).send("incorrect password")
+        res.status(401).json({message:"incorrect password"})
     }
 
 } catch (error) {
-    res.status(401).send("login not possible")
+    res.status(500).json({message:"login not possible",error:error.message})
 }
 
 }
